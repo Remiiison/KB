@@ -1,0 +1,17 @@
+RewriteEngine On
+
+# Route all requests to index.php (except real files/directories)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php [QSA,L]
+
+# Block direct access to PHP files other than index.php
+<FilesMatch "^(?!index\.php$).*\.php$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Security headers
+Header always set X-Content-Type-Options "nosniff"
+Header always set X-Frame-Options "SAMEORIGIN"
+Header always set Referrer-Policy "strict-origin-when-cross-origin"
