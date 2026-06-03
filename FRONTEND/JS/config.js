@@ -15,6 +15,7 @@
   var hostname = window.location.hostname;
   var isLocal  = hostname === 'localhost' || hostname === '127.0.0.1';
 
+  
   var PRODUCTION_API_URL = 'https://kapitbisig.online:5001';
 
   window.KB_API_BASE = isLocal ? 'http://localhost:5001' : PRODUCTION_API_URL;
