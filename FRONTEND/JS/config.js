@@ -1,18 +1,13 @@
 /* ── KAPITBISIG PRODUCTION CONFIGURATION ──
  *
  * This file is loaded FIRST in every HTML page.
- * It sets window.KB_API_BASE so api.js, Common.js, SignIn.js, and Signup.js
- * all point to the correct backend — in dev or production.
+ * It sets window.KB_API_BASE so all API calls go to the correct server.
  *
- * BEFORE DEPLOYING TO HOSTINGER:
- *   Replace 'https://YOUR-API-DOMAIN-HERE' below with your real API URL.
- *
- *   Examples:
- *     'https://api.kapitbisig.ph'          ← dedicated API subdomain
- *     'https://kapitbisig.ph:5001'         ← same domain, explicit port
- *     'https://kapitbisig.ph/api'          ← reverse-proxied via /api path
- *
- *   After updating, commit the file and redeploy.
+ * Domain : kapitbisig.online
+ * API URL : https://kapitbisig.online:5001
+ *   (The Node.js backend runs on port 5001 on the same Hostinger server.
+ *    If you configure a reverse proxy later to expose /api on port 443,
+ *    change PRODUCTION_API_URL to 'https://kapitbisig.online/api'.)
  * ──────────────────────────────────────────────────────────────────── */
 (function () {
   'use strict';
@@ -20,9 +15,7 @@
   var hostname = window.location.hostname;
   var isLocal  = hostname === 'localhost' || hostname === '127.0.0.1';
 
-  /* ↓↓↓ CHANGE THIS LINE FOR PRODUCTION ↓↓↓ */
-  var PRODUCTION_API_URL = 'https://YOUR-API-DOMAIN-HERE';
-  /* ↑↑↑ CHANGE THIS LINE FOR PRODUCTION ↑↑↑ */
+  var PRODUCTION_API_URL = 'https://kapitbisig.online:5001';
 
   window.KB_API_BASE = isLocal ? 'http://localhost:5001' : PRODUCTION_API_URL;
 })();
