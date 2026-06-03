@@ -160,7 +160,7 @@
 					window.location.href = 'UserProfile.html';
 				}, 400);
 			} catch (_error) {
-				showToast('Backend is unreachable. Start the auth server first.', 'error');
+				showToast('Unable to connect to the server. Please try again.', 'error');
 			}
 		});
 	}

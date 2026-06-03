@@ -112,7 +112,7 @@
 					window.location.href = 'Landingpage.html';
 				}, 400);
 			} catch (_error) {
-				showToast('Backend is unreachable. Start the auth server first.', 'error');
+				showToast('Unable to connect to the server. Please try again.', 'error');
 			}
 		});
 	}
@@ -187,7 +187,7 @@
 				emailEl.value = '';
 				setTimeout(function () { showPanel('loginPanel'); }, 2500);
 			} catch (_) {
-				showToast('Backend is unreachable. Start the auth server first.', 'error');
+				showToast('Unable to connect to the server. Please try again.', 'error');
 			}
 		});
 	}
@@ -232,7 +232,7 @@
 					showToast(data.message || 'Reset failed. The link may have expired.', 'error');
 				}
 			} catch (_) {
-				showToast('Backend is unreachable. Start the auth server first.', 'error');
+				showToast('Unable to connect to the server. Please try again.', 'error');
 			}
 		});
 	}
