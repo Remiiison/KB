@@ -63,36 +63,19 @@ async function signin(req, res, next) {
 			return res.status(400).json({ message: 'Email and password are required.' });
 		}
 
-		console.log('[AUTH] Signin attempt for:', email);
-		
 		const user = await findByEmail(String(email).trim());
-		if (!user) {
-			console.log('[AUTH] User not found for email:', email);
+		if (!user || !user.passwordHash) {
 			return res.status(401).json({ message: constants.ERROR_MESSAGES.INVALID_CREDENTIALS });
 		}
 
-		console.log('[AUTH] User found:', { id: user.id, email: user.email, role: user.role });
-		
-		if (!user.passwordHash) {
-			console.log('[AUTH] ⚠️ WARNING: User has no password hash stored in database');
-			return res.status(401).json({ message: constants.ERROR_MESSAGES.INVALID_CREDENTIALS });
-		}
-
-		console.log('[AUTH] Attempting bcrypt.compare with provided password');
 		const match = await bcrypt.compare(String(password), user.passwordHash);
-		
 		if (!match) {
-			console.log('[AUTH] Password verification failed for user:', email);
 			return res.status(401).json({ message: constants.ERROR_MESSAGES.INVALID_CREDENTIALS });
 		}
 
-		console.log('[AUTH] ✓ Password verified successfully for user:', email);
 		req.session.userId = user.id;
-		console.log('[AUTH] Session created with userId:', user.id);
-		
 		return res.json({ message: 'Signed in.', user: toPublicUser(user) });
 	} catch (error) {
-		console.error('[AUTH] ✗ Signin error:', error);
 		next(error);
 	}
 }
@@ -133,9 +116,10 @@ async function forgotPassword(req, res, next) {
 		const user = await findByEmail(String(email).trim());
 		if (user) {
 			const token = await passwordResetModel.createToken(user.id);
-			const resetUrl = `http://localhost:4012/SignIn.html?token=${token}`;
+			const frontendUrl = process.env.FRONTEND_URL;
+			const resetUrl = `${frontendUrl}/HTML/SignIn.html?token=${token}`;
 			// TODO: send resetUrl via email when SMTP is configured (blk-04)
-			console.log(`[PASSWORD RESET] Link for ${email}:\n  ${resetUrl}`);
+			console.log(`[PASSWORD RESET] Reset link generated for ${email}`);
 		}
 
 		return res.json({ message: 'If that email is registered, a reset link has been sent.' });

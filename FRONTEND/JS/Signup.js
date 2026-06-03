@@ -1,6 +1,7 @@
 /* Sign-up page interactions */
 (function () {
-	const API_BASE = window.KB_API_BASE || 'http://localhost:5001';
+	/* API base is set by config.js (loaded before this file in every HTML page). */
+	const API_BASE = window.KB_API_BASE || '';
 	const hamburger = document.getElementById('hamburger');
 	const navDrawer = document.getElementById('navDrawer');
 	const signupForm = document.getElementById('signupForm');

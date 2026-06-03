@@ -2,7 +2,8 @@
 (function () {
 	'use strict';
 
-	const API_BASE = window.KB_API_BASE || 'http://localhost:5001';
+	/* API base is set by config.js (loaded before this file in every HTML page). */
+	const API_BASE = window.KB_API_BASE || '';
 	const USER_KEY = 'kb.auth.user';
 	const AUTH_KEYS = ['kb.auth.user', 'kb.auth.role', 'kb.auth.name', 'kb.auth.email', 'kb.user'];
 	let navBound = false;

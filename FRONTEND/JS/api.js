@@ -1,5 +1,6 @@
 /* ── KAPITBISIG API CLIENT ── */
-const API_BASE = window.KB_API_BASE || 'http://localhost:5001';
+/* API base is set by config.js (loaded before this file in every HTML page). */
+const API_BASE = window.KB_API_BASE || '';
 
 /* ── HTTP METHODS ── */
 const http = {

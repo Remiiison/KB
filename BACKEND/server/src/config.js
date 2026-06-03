@@ -1,8 +1,14 @@
 require('dotenv').config();
 
+const nodeEnv = process.env.NODE_ENV || 'development';
+
+if (nodeEnv === 'production' && (!process.env.SESSION_SECRET || process.env.SESSION_SECRET === 'dev-secret-change-me')) {
+	throw new Error('SESSION_SECRET must be set to a strong random value in production. Run: node -e "console.log(require(\'crypto\').randomBytes(64).toString(\'hex\'))"');
+}
+
 module.exports = {
 	port: Number(process.env.PORT || 5001),
-	nodeEnv: process.env.NODE_ENV || 'development',
+	nodeEnv,
 	sessionSecret: process.env.SESSION_SECRET || 'dev-secret-change-me',
 	frontendOrigins: String(process.env.FRONTEND_ORIGINS || '')
 		.split(',')

@@ -25,9 +25,13 @@ const app = express();
 app.use(helmet());
 app.use(limiter);
 
+const allowedOrigins = config.frontendOrigins.length > 0
+	? config.frontendOrigins
+	: (config.nodeEnv === 'production' ? [] : true);
+
 app.use(
 	cors({
-		origin: true,
+		origin: allowedOrigins,
 		credentials: true
 	})
 );
@@ -77,7 +81,7 @@ async function start() {
 		await seed();
 
 		app.listen(config.port, () => {
-			console.log(`✓ KapitBisig API server running on http://localhost:${config.port}`);
+			console.log(`✓ KapitBisig API server running on port ${config.port}`);
 			console.log(`  Environment: ${config.nodeEnv}`);
 		});
 	} catch (error) {
