@@ -1,5 +1,43 @@
 ﻿// ── AUTH ──
 
+// ── QUICK ACCESS CODE ──
+function toggleCodePanel() {
+  const panel = document.getElementById('codePanel');
+  if (panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+}
+
+async function loginWithCode() {
+  const codeInput = document.getElementById('accessCode');
+  const codeMsg   = document.getElementById('codeMsg');
+  const btn       = document.getElementById('codeBtnText');
+  const code      = (codeInput ? codeInput.value.trim().toUpperCase() : '');
+
+  if (codeMsg) codeMsg.textContent = '';
+  if (!code) { if (codeMsg) codeMsg.textContent = 'Please enter your access code.'; return; }
+
+  if (btn) btn.textContent = 'Verifying…';
+  try {
+    const res = await fetch((window.KB_API_BASE || '/api') + '/auth/admin-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ code })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      if (codeMsg) codeMsg.textContent = data.message || 'Invalid access code.';
+      if (btn) btn.textContent = 'Access Portal';
+      return;
+    }
+    const user = data.user || {};
+    currentUser = { id: user.id, role: user.role, name: user.fullName || user.firstName, email: user.email };
+    goToDashboard(currentUser.role);
+  } catch (_e) {
+    if (codeMsg) codeMsg.textContent = 'Unable to connect. Try again.';
+    if (btn) btn.textContent = 'Access Portal';
+  }
+}
+
 let attempts = 0;
 const MAX_ATTEMPTS = 5;
 let currentUser = null;

@@ -75,6 +75,7 @@ try {
             $seg1 === 'me'              && $method === 'PUT'  => $c->updateMe(),
             $seg1 === 'forgot-password' && $method === 'POST' => $c->forgotPassword(),
             $seg1 === 'reset-password'  && $method === 'POST' => $c->resetPassword(),
+            $seg1 === 'admin-code'      && $method === 'POST' => $c->adminCode(),
             default => json_error('Not found.', 404),
         };
     }

@@ -166,6 +166,40 @@ class AuthController {
         json_ok(['message' => 'Password updated successfully. You can now sign in.']);
     }
 
+    public function adminCode(): void {
+        $code = trim(get_body()['code'] ?? '');
+        if (!$code) json_error('Access code is required.');
+
+        $superCode = getenv('ADMIN_SUPER_CODE') ?: '';
+        $ngoCode   = getenv('ADMIN_NGO_CODE')   ?: '';
+
+        if ($superCode === '' || $ngoCode === '') {
+            json_error('Access codes are not configured on this server.', 503);
+        }
+
+        $db   = Database::getInstance();
+        $role = null;
+
+        if ($code === $superCode) {
+            $role = 'superadmin';
+        } elseif ($code === $ngoCode) {
+            $role = 'ngo_admin';
+        } else {
+            json_error('Invalid access code.', 401);
+        }
+
+        $stmt = $db->prepare('SELECT user_id, first_name, last_name, email, role, date_registered FROM users WHERE role = ? LIMIT 1');
+        $stmt->execute([$role]);
+        $user = $stmt->fetch();
+        if (!$user) json_error('Admin account not found. Run the seed script first.', 404);
+
+        session_start_once();
+        session_regenerate_id(true);
+        $_SESSION['user_id'] = $user['user_id'];
+
+        json_ok(['message' => 'Signed in.', 'user' => map_user($user)]);
+    }
+
     private function findById(int $id): array {
         $db   = Database::getInstance();
         $stmt = $db->prepare(
