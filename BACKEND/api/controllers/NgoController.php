@@ -71,6 +71,13 @@ class NgoController {
     public function update(string $id): void {
         $user = require_auth();
         require_role(['ngo_admin', 'ngo', 'admin', 'superadmin'], $user);
+
+        // ngo_admin may only update their own NGO
+        if ($user['role'] === 'ngo_admin') {
+            $myNgoId = get_user_ngo_id((int)$user['user_id']);
+            if (!$myNgoId || $myNgoId !== (int)$id) json_error('Forbidden.', 403);
+        }
+
         $body    = get_body();
         $updates = [];
         $params  = [];

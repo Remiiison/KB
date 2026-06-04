@@ -76,6 +76,14 @@ function map_user(array $row): array {
     ];
 }
 
+/* Return the ngo_id owned by a given user, or null if none. */
+function get_user_ngo_id(int $userId): ?int {
+    $stmt = Database::getInstance()->prepare('SELECT ngo_id FROM ngos WHERE user_id = ? LIMIT 1');
+    $stmt->execute([$userId]);
+    $row = $stmt->fetch();
+    return $row ? (int)$row['ngo_id'] : null;
+}
+
 /* Write one row to activity_logs — silently ignore errors. */
 function log_activity(int $adminId, string $entityType, $entityId, string $action): void {
     try {

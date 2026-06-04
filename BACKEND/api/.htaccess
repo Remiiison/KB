@@ -5,8 +5,8 @@ RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^(.*)$ index.php [QSA,L]
 
-# Block direct access to PHP files other than index.php
-<FilesMatch "^(?!index\.php$).*\.php$">
+# Block direct access to PHP files other than index.php and setup_ngos.php
+<FilesMatch "^(?!index\.php$|setup_ngos\.php$).*\.php$">
     Order allow,deny
     Deny from all
 </FilesMatch>

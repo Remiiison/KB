@@ -1,6 +1,29 @@
 <?php
 class CampaignController {
 
+    /* Resolve the NGO id that the current session's ngo_admin owns.
+       Returns null for superadmin / admin (no restriction). */
+    private function sessionNgoId(): ?int {
+        session_start_once();
+        if (empty($_SESSION['user_id'])) return null;
+        $stmt = Database::getInstance()->prepare('SELECT role FROM users WHERE user_id = ? LIMIT 1');
+        $stmt->execute([$_SESSION['user_id']]);
+        $u = $stmt->fetch();
+        if (!$u || $u['role'] !== 'ngo_admin') return null;
+        return get_user_ngo_id((int)$_SESSION['user_id']);
+    }
+
+    /* Abort with 403 if the campaign does not belong to the given NGO. */
+    private function assertOwns(int $campaignId, int $ngoId): void {
+        $stmt = Database::getInstance()->prepare(
+            'SELECT ngo_id FROM campaigns WHERE campaign_id = ? LIMIT 1'
+        );
+        $stmt->execute([$campaignId]);
+        $row = $stmt->fetch();
+        if (!$row) json_error('Campaign not found.', 404);
+        if ((int)$row['ngo_id'] !== $ngoId) json_error('Forbidden.', 403);
+    }
+
     /* ── list GET /campaigns ── */
     public function list(): void {
         $status   = $_GET['status']   ?? null;
@@ -9,6 +32,12 @@ class CampaignController {
         $ngoId    = $_GET['ngoId']    ?? null;
         $limit    = min((int)($_GET['limit']  ?? 50), 100);
         $offset   = (int)($_GET['offset'] ?? 0);
+
+        // RBAC: ngo_admin is silently restricted to their own NGO
+        $myNgoId = $this->sessionNgoId();
+        if ($myNgoId !== null) {
+            $ngoId = $myNgoId;
+        }
 
         $where  = [];
         $params = [];
@@ -42,6 +71,13 @@ class CampaignController {
         $stmt->execute([(int)$id]);
         $row = $stmt->fetch();
         if (!$row) json_error('Campaign not found.', 404);
+
+        // ngo_admin may only view campaigns belonging to their NGO
+        $myNgoId = $this->sessionNgoId();
+        if ($myNgoId !== null && (int)$row['ngo_id'] !== $myNgoId) {
+            json_error('Forbidden.', 403);
+        }
+
         json_ok(['campaign' => $this->map($row)]);
     }
 
@@ -63,14 +99,15 @@ class CampaignController {
 
         $db = Database::getInstance();
 
-        // Resolve ngo_id
-        $ngoId = (int)($body['ngoId'] ?? 0);
-        if (!$ngoId) {
-            $s = $db->prepare('SELECT ngo_id FROM ngos WHERE user_id = ? LIMIT 1');
-            $s->execute([$user['user_id']]);
-            $ngo = $s->fetch();
-            if (!$ngo) json_error('NGO profile not found.', 404);
-            $ngoId = $ngo['ngo_id'];
+        // Resolve ngo_id — ngo_admin is always locked to their own NGO
+        $myNgoId = get_user_ngo_id((int)$user['user_id']);
+        if ($user['role'] === 'ngo_admin') {
+            if (!$myNgoId) json_error('NGO profile not found for your account.', 404);
+            $ngoId = $myNgoId;
+        } else {
+            $ngoId = (int)($body['ngoId'] ?? 0);
+            if (!$ngoId && $myNgoId) $ngoId = $myNgoId;
+            if (!$ngoId) json_error('NGO ID is required.', 400);
         }
 
         $db->prepare(
@@ -92,6 +129,11 @@ class CampaignController {
     public function update(string $id): void {
         $user = require_auth();
         require_role(['ngo_admin', 'ngo', 'admin', 'superadmin'], $user);
+
+        // ngo_admin may only edit their own NGO's campaigns
+        $myNgoId = $this->sessionNgoId();
+        if ($myNgoId !== null) $this->assertOwns((int)$id, $myNgoId);
+
         $body = get_body();
         $db   = Database::getInstance();
 
@@ -135,10 +177,15 @@ class CampaignController {
         $campaign = $stmt->fetch();
         if (!$campaign) json_error('Campaign not found.', 404);
 
+        // ngo_admin may only submit their own NGO's campaigns
+        $myNgoId = $this->sessionNgoId();
+        if ($myNgoId !== null && (int)$campaign['ngo_id'] !== $myNgoId) {
+            json_error('Forbidden.', 403);
+        }
+
         $db->prepare("UPDATE campaigns SET status = 'pending' WHERE campaign_id = ?")->execute([(int)$id]);
         log_activity($user['user_id'], 'campaign', $id, 'submit');
 
-        // Notify admin
         $ns = $db->prepare('SELECT ngo_name FROM ngos WHERE ngo_id = ? LIMIT 1');
         $ns->execute([$campaign['ngo_id']]);
         $ngoRow = $ns->fetch();
@@ -166,7 +213,6 @@ class CampaignController {
         $reason = get_body()['reason'] ?? null;
         $db     = Database::getInstance();
 
-        // Fetch campaign + ngo owner email for notification
         $stmt = $db->prepare(
             'SELECT c.title, u.email, u.first_name, u.last_name
              FROM campaigns c

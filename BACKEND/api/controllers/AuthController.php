@@ -126,8 +126,6 @@ class AuthController {
             )->execute([$found['user_id'], $tokenHash, $expires]);
 
             $resetUrl = FRONTEND_URL . '/HTML/SignIn.html?token=' . $token;
-            error_log("[PASSWORD RESET] Reset link generated for $email");
-
             (new EmailService())->sendPasswordResetEmail($email, $resetUrl);
         }
 
@@ -166,32 +164,47 @@ class AuthController {
         json_ok(['message' => 'Password updated successfully. You can now sign in.']);
     }
 
+    /* ── Quick Access Code login ── */
     public function adminCode(): void {
-        $code = trim(get_body()['code'] ?? '');
+        $code = strtoupper(trim(get_body()['code'] ?? ''));
         if (!$code) json_error('Access code is required.');
 
-        $superCode = getenv('ADMIN_SUPER_CODE') ?: '';
-        $ngoCode   = getenv('ADMIN_NGO_CODE')   ?: '';
+        $superCode = strtoupper(getenv('ADMIN_SUPER_CODE') ?: '');
+        $ngo1Code  = strtoupper(getenv('ADMIN_NGO1_CODE')  ?: '');
+        $ngo2Code  = strtoupper(getenv('ADMIN_NGO2_CODE')  ?: '');
 
-        if ($superCode === '' || $ngoCode === '') {
+        // Legacy fallback: old ADMIN_NGO_CODE maps to NGO Admin 1
+        $ngoLegacy = strtoupper(getenv('ADMIN_NGO_CODE') ?: '');
+
+        if ($superCode === '') {
             json_error('Access codes are not configured on this server.', 503);
         }
 
-        $db   = Database::getInstance();
-        $role = null;
-
+        // Map code → target email
+        $targetEmail = null;
         if ($code === $superCode) {
-            $role = 'superadmin';
-        } elseif ($code === $ngoCode) {
-            $role = 'ngo_admin';
+            $targetEmail = 'superadmin@kapitbisig.online';
+        } elseif ($ngo1Code !== '' && $code === $ngo1Code) {
+            $targetEmail = 'ngoadmin1@kapitbisig.online';
+        } elseif ($ngo2Code !== '' && $code === $ngo2Code) {
+            $targetEmail = 'ngoadmin2@kapitbisig.online';
+        } elseif ($ngoLegacy !== '' && $code === $ngoLegacy) {
+            $targetEmail = 'ngoadmin1@kapitbisig.online'; // legacy maps to NGO 1
         } else {
             json_error('Invalid access code.', 401);
         }
 
-        $stmt = $db->prepare('SELECT user_id, first_name, last_name, email, role, date_registered FROM users WHERE role = ? LIMIT 1');
-        $stmt->execute([$role]);
+        $db   = Database::getInstance();
+        $stmt = $db->prepare(
+            'SELECT user_id, first_name, last_name, email, role, date_registered
+             FROM users WHERE LOWER(email) = ? LIMIT 1'
+        );
+        $stmt->execute([strtolower($targetEmail)]);
         $user = $stmt->fetch();
-        if (!$user) json_error('Admin account not found. Run the seed script first.', 404);
+
+        if (!$user) {
+            json_error('Admin account not found. Run the NGO setup script first.', 404);
+        }
 
         session_start_once();
         session_regenerate_id(true);
@@ -201,8 +214,7 @@ class AuthController {
     }
 
     private function findById(int $id): array {
-        $db   = Database::getInstance();
-        $stmt = $db->prepare(
+        $stmt = Database::getInstance()->prepare(
             'SELECT user_id, first_name, last_name, email, role, date_registered
              FROM users WHERE user_id = ? LIMIT 1'
         );
